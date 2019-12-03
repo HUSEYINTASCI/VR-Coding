@@ -1,0 +1,28 @@
+{
+  "name": "VR-Coding",
+  "version": "1.0.0",
+  "description": "VR-Coding Exprience",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HUSEYINTASCI/VR-Coding.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/HUSEYINTASCI/VR-Coding/issues"
+  },
+  "homepage": "https://github.com/HUSEYINTASCI/VR-Coding#readme",
+  "dependencies": {
+    "aframe-textarea-component": "^0.2.0",
+    "easyrtc": "^1.1.0",
+    "express": "^4.17.1",
+    "networked-aframe": "^0.6.1",
+    "socket.io": "^2.3.0"
+  }
+}

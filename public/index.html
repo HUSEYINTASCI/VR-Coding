@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <link href="assets/css/login.css" rel="stylesheet" type="text/css">
+  </head>
+  <body>
+      <a-scene>
+          <a-plane acanvas position="0 2 -4" rotation="0 -5 0" width="6" height="4"></a-plane>
+        <a-grid></a-grid>
+          <a-sky color="#cef"></a-sky>
+        </a-scene>
+    <div class="login-page">
+      <div class="form">
+        <h2>Room Informations</h2>
+        <form class="login-form" action="/scene.html" method="GET">
+          <input type="text" name="room" placeholder="room" required/>
+          <input type="text" name="username" placeholder="username" required/>
+          <button>Join Room</button>
+        </form>
+      </div>
+    </div>
+  </body>
+</html>

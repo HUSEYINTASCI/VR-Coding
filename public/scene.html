@@ -1,0 +1,448 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>VR CODING</title>
+    <script src="https://aframe.io/releases/0.7.0/aframe.min.js"></script>
+    <script src="../assets/js/spawn-in-circle.component.js"></script>
+    <script src="../assets/js/dynamic-room.component.js"></script>
+    <script src="../assets/js/sphereexpand.js"></script>
+    <script src="../assets/js/backhome.js"></script>
+    <script src="../assets/js/videopause.js"></script>
+    <script src="../assets/js/audiocontrols.js"></script>
+    <script src="../assets/js/videocontrols.js"></script>
+    <script src="../assets/js/spaceship.js"></script>
+    <script src="../assets/js/berlin.js"></script>
+    <script src="../assets/js/videosphereexpand.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.4.5/socket.io.min.js"></script>
+    <script src="easyrtc/easyrtc.js"></script>
+    <script src="https://unpkg.com/networked-aframe@^0.4.0/dist/networked-aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-randomizer-components@^3.0.1/dist/aframe-randomizer-components.min.js"></script>
+    <script src="https://unpkg.com/aframe-particle-system-component@1.0.5/dist/aframe-particle-system-component.min.js"></script>
+    <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
+    <script src="//cdn.rawgit.com/donmccurdy/aframe-physics-system/v3.3.0/dist/aframe-physics-system.min.js"></script>
+    <script>
+      // Define custom schema for syncing avatar color, set by random-color, and name tag
+      NAF.schemas.add({
+        template: '#avatar-template',
+        components: [
+          'position',
+          'rotation',
+          {
+            selector: '.head',
+            component: 'material',
+            property: 'color'
+          },
+          {
+            selector: '.nametag',
+            component: 'text',
+            property: 'value'
+          }
+        ]
+      });
+          </script>
+
+          <!-- Teleportacion -->
+           <script>
+            AFRAME.registerComponent('input-listen', {
+              init:function () {  
+                const txt = document.getElementById("txt");
+                this.el.grip = false;
+                this.el.sumY = 1;  
+                
+               
+                this.el.addEventListener('axismove', function(e) {
+                
+                  txt.setAttribute("value", e.detail.axis[0].toFixed(2) + "," + e.detail.axis[1].toFixed(2));
+                 
+                  this.sumY += (-e.detail.axis[1] * 0.01);
+                });
+                
+              
+                this.el.addEventListener('xbuttondown', function(e) {
+                  //txt.setAttribute("value", "x pressed");
+                  
+               
+                  this.emit('teleportstart');
+                });
+              
+                this.el.addEventListener('xbuttonup', function(e) {
+                  //txt.setAttribute("value", "x released");
+                  
+              
+                  this.emit('teleportend');
+                });
+                
+              
+                this.el.addEventListener('gripdown', function(e) {
+                  //txt.setAttribute("value", "grip pressed");
+                  this.grip = true;
+               
+                  this.sumY = 1;
+                });
+           
+                this.el.addEventListener('gripup', function(e) {
+                  //txt.setAttribute("value", "grip released");
+                  this.grip = false;
+                });
+                
+       
+                this.el.addEventListener('raycaster-intersection', function(e) {
+           
+                  this.selectedObj = e.detail.els[0];
+                });
+                
+                this.el.addEventListener('raycaster-intersection-cleared', function(e) {
+                 
+                  this.selectedObj = null;
+                });
+                 
+                this.el.addEventListener('triggerdown', function(e) {
+            
+                  var point = this.object3D.getWorldPosition();
+          
+                  var ball = document.createElement('a-sphere');
+                  ball.setAttribute('class', 'ball');
+                  ball.setAttribute('scale', '0.2 0.2 0.2');
+                  ball.setAttribute('position', point);
+         
+                  ball.setAttribute('dynamic-body', 'shape: sphere; sphereRadius: 0.2;');
+          
+                  var scene = document.querySelector('a-scene');
+                  scene.appendChild(ball);
+                  
+              
+                  var dir = this.getAttribute('raycaster').direction;
+                
+                  var force = new THREE.Vector3();
+                  force.set(dir.x, dir.y, dir.z);
+                  force.multiplyScalar(2000);
+                
+                  ball.force = this.object3D.localToWorld(force);
+                
+                  ball.addEventListener('body-loaded', function(e) {
+            
+                    var p = this.object3D.position;
+               
+                    var f = this.force;
+                    this.body.applyForce(new CANNON.Vec3(f.x, f.y, f.z), new CANNON.Vec3(p.x, p.y, p.z));
+                  });
+                });
+              
+                this.el.addEventListener('abuttondown', function(e) {
+              
+                  var els = document.querySelectorAll('.ball');
+               
+                  for (var i = 0; i < els.length; ++i) {
+                    els[i].parentNode.removeChild(els[i]);
+                  }
+                });
+              },
+              tick: function() {  
+                if (!this.el.selectedObj) return;
+                if (!this.el.grip) return;
+        
+                
+           
+                var ray = this.el.getAttribute("raycaster").direction;
+              
+                var p = new THREE.Vector3(ray.x, ray.y, ray.z);
+                p.normalize();
+                p.multiplyScalar(1.2 * this.el.sumY);
+           
+                this.el.object3D.localToWorld(p);
+             
+                this.el.selectedObj.object3D.position.set(p.x, p.y, p.z);
+              }
+            });
+          </script>
+  </head>
+  <body>
+
+    <a-scene physics="gravity: 0; restitution: 0.9;" networked-scene="
+    room: audio;
+    adapter: easyrtc;
+    audio: true;
+    debug: true;
+  ">
+      <a-assets>
+
+       
+        <img id="skyc" src="../assets/images/tt.jpg" crossorigin="anonymous">
+        <img id="woodfloor" src="../assets/images/floor.jpg" crossorigin="anonymous">
+        <img id="wall" src="../assets/images/wall.jpg" crossorigin="anonymous">
+         <img id="pic" src="../assets/images/code.PNG" crossorigin="anonymous">
+         <img id="pic2" src="../assets/images/22312742.jpg" crossorigin="anonymous">
+         <img id="pic3" src="../assets/images/vr.png" crossorigin="anonymous">
+        <img id="spaces" src="../assets/images/spaceship.png" crossorigin="anonymous">
+        <img id="berlin" src="../assets/images/berlin.jpg" crossorigin="anonymous">
+        <img id="bordeauxtheater" src="https://live.staticflickr.com/65535/49158982103_b95c8b60f9_k.jpg" crossorigin="anonymous">
+        <img id="flowers" src="../assets/images/music.jpg" crossorigin="anonymous">
+        <audio id="song" src="https://cdn.glitch.com/96ab1f6e-16b9-43c1-9df3-fbe9b24a7490%2FLeft%20and%20Leaving.mp3?1549919550870" preload="auto" crossorigin="anonymous"></audio>
+        <video id="videoclip" loop="true" src="../assets/images/video.mp4" crossorigin="anonymous"></video>
+        <video id="spherevidclip"  loop="false" src="../assets/images/fall.mp4" crossorigin="anonymous"> </video>
+     
+        <!-- Avatar -->
+        <script id="avatar-template" type="text/html">
+          <a-entity class="nametag" text="value:Guest; align:center;" position="0 0.7 0" rotation="0 180 0" scale="8 8 8"></a-entity>
+          <a-entity class="avatar" networked-audio-source>
+            <a-sphere class="head"
+              color="#5985ff"
+              scale="0.45 0.5 0.4"
+              random-color
+            ></a-sphere>
+            <a-entity class="face"
+              position="0 0.05 0"
+            >
+              <a-sphere class="eye"
+                color="#efefef"
+                position="0.16 0.1 -0.35"
+                scale="0.12 0.12 0.12"
+              >
+                <a-sphere class="pupil"
+                  color="#000"
+                  position="0 0 -1"
+                  scale="0.2 0.2 0.2"
+                ></a-sphere>
+              </a-sphere>
+              <a-sphere class="eye"
+                color="#efefef"
+                position="-0.16 0.1 -0.35"
+                scale="0.12 0.12 0.12"
+              >
+                <a-sphere class="pupil"
+                  color="#000"
+                  position="0 0 -1"
+                  scale="0.2 0.2 0.2"
+                ></a-sphere>
+              </a-sphere>
+            </a-entity>
+         
+          </a-entity>
+         
+        </script>
+
+        <!-- /Templates -->
+      </a-assets>
+ 
+<a-entity id="player" networked="template:#avatar-template;showLocalTemplate:false;" camera spawn-in-circle="radius:3;" position="0 1.6 0" wasd-controls look-controls>
+    <a-sphere class="head"
+    visible="false"
+    random-color
+  ></a-sphere>
+      </a-entity>
+ 
+      <a-entity id="player">
+          <a-entity cursor="rayOrigin: mouse"></a-entity>
+        <a-entity id="head" camera position="0 1.6 0">
+          <a-text id="txt" value="" position="0 0 -1" scale="0.5 0.5 0.5" align="center" color="#FFFFFF"></a-text>
+        </a-entity>
+        <a-entity teleport-controls="player: #player; teleportOrigin: #head; startEvents: teleportstart; endEvents: teleportend"
+                  raycaster="objects: .collidable; far:1.2;"
+                  laser-controls="hand: left" input-listen></a-entity>
+        <a-entity raycaster="objects: .collidable; far:1.2;" laser-controls="hand: right" input-listen></a-entity>
+   
+        
+      <!-- sky  -->
+        <a-sky id="sky" src="#skyc"></a-sky>
+
+       <!-- floor -->
+        <a-entity id="architecture" class="homeworld">
+           <a-plane id="floor" rotation="-90 90 0" width="30" height="30" src="#woodfloor" repeat="4 4"></a-plane>
+           <a-plane position="0 5 -15" width="30" height="10" src="#wall" repeat="2 1"></a-plane>
+           <a-plane position="-2.5 5 15" rotation="0 180 0" width="25" height="10" src="#wall" repeat="2 1"></a-plane>
+           <a-plane position="-15 5 0" rotation="0 90 0" width="30" height="10" src="#wall" repeat="2 1"></a-plane>
+           <a-plane position="15 5 0" rotation="0 -90 0" width="30" height="10" src="#wall" repeat="2 1"></a-plane>
+           <a-plane id = "ceiling" position="0 10 0" scale="1 1 1" width="30" height="30" rotation="90 0 0"
+             material="metalness:1; roughness:0; transparent: true; opacity: .7; shader: standard; 
+             color: #faaf52; side:double;"   ></a-plane>
+         </a-entity>
+
+         <!-- 360 video  -->
+         <a-entity id="videospheredisplay"  position="-7 0 -12">
+            <a-box class="homeworld" color="black" rotation="0 35 0" width="1" height="2" depth=".5" ></a-box>
+            <a-videosphere id="videosphereentity" position="0 1.8 0" radius=".7" src="#spherevidclip" videosphereexpand      
+            ></a-videosphere>
+            <a-plane id="videospherecaption" class="homeworld" position=".5 .5 .5" rotation="-25 35 0" height=".6" width="auto" color="#191817"
+            text="value: Crystal Shower Falls 360 Video; width: 2; wrapCount: 30; align: center"
+            ></a-plane>
+         </a-entity>
+
+         <!-- codeplayground -->
+         <a-entity id="picdisplay" class="homeworld" position="0 3 -14.9">
+           <a-plane id="picframe" color="#191817" width="3" height="4"></a-plane>
+           <a-plane id="picpainting" src="#pic" position="0.047 1.833 0.1" width="2.5" height="3.5" scale="8.011 2.874 2.436"></a-plane>
+           
+         </a-entity>
+         <!-- WALL IMAGES -->
+         <a-plane id="picpainting" class="homeworld" src="#pic2" position="14.58 4.557 -6.734" width="2.5" height="3.5" scale="5.317 1.898 2.063" rotation="0 -90.928 -0.115"></a-plane>
+         <a-plane id="picpainting" class="homeworld" src="#pic3" position="14.58 4.634 7.345" width="2.5" height="3.5" scale="5.317 1.898 2.063" rotation="0 -90.928 -0.115"></a-plane>
+
+
+         <!-- spaceship -->
+         <a-entity id="sp" class="homeworld" position="-13.671 -0.139 -8.316">
+            <a-box color="black" rotation="0 35 0" width="1" height="2" depth=".5"></a-box>
+            <a-sphere position="0 1.8 0" radius=".7" src="#spaces" spaceship 
+             animation="property: rotation; to: 0 360 0; easing: easeInOutSine; dur: 30000; loop: true; elasticity: 0"></a-sphere>
+            <a-plane id="sp1" position="0.5 0.5 0.5" rotation="-25 35 0" height=".6" width="auto" color="#191817" text="align:center;value:This photosphere from Inside Spaceship;width:2;wrapCount:30" geometry="width:2"></a-plane>
+         </a-entity>
+
+         <!-- museum -->
+         <a-entity id="photospheredisplay" class="homeworld" position="-11 0 -11">
+            <a-box color="black" rotation="0 35 0" width="1" height="2" depth=".5" ></a-box>
+            <a-sphere position="0 1.8 0" radius=".7" src="#bordeauxtheater" sphereexpand         
+            animation="property: rotation; to: 0 360 0; easing: easeInOutSine; dur: 30000; loop: true; elasticity: 0"
+            ></a-sphere>
+            <a-plane id="photospherecaption" position=".5 .5 .5" rotation="-25 35 0" height=".6" width="auto" color="#191817"
+            text="value: This photosphere from IBM Museium ; width: 2; wrapCount: 30; align: center"
+            ></a-plane>
+         </a-entity>
+         
+          <!-- Berlin museum -->
+          <a-entity id="sp2" class="homeworld" position="-14.094 0.076 -3.274" rotation="0 51.27972266420868 0">
+              <a-box color="black" rotation="0 35 0" width="1" height="2" depth=".5"></a-box>
+              <a-sphere position="0 1.8 0" radius=".7" src="#berlin" berlinpic
+               animation="property: rotation; to: 0 360 0; easing: easeInOutSine; dur: 30000; loop: true; elasticity: 0"></a-sphere>
+              <a-plane id="sp2" position="0.5 0.5 0.5" rotation="-25 35 0" height=".6" width="auto" color="#191817" text="align:center;value:This photosphere from IBM Museium;width:2;wrapCount:30" geometry="width:2"></a-plane>
+           </a-entity>
+        
+         
+      
+            <!-- Song -->
+            <a-entity id="musicpanel" class="homeworld" position="-4.419 3 14.922" rotation="1.0313240312354817 178.87742363984302 0.6302535746439055" sound="src:https://cdn.glitch.com/96ab1f6e-16b9-43c1-9df3-fbe9b24a7490%2FLeft%20and%20Leaving.mp3?1549919550870">
+  
+              <a-plane width="2.5" height="3.5" position="0 -0.06 0" shader="flat" src="#flowers" side="double"></a-plane>
+              <a-plane position="0 -0.5 0.01" width="2" height=".5" transparent="true" opacity=".9" color="#191817" text="align:center;value:Song Des;width:4"></a-plane>
+              
+              <a-plane id="playbox" depth=".01" scale="0.3 0.3 0.3" position="-0.673 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songplayer="">
+                 <a-triangle id="playicon" color="white" depth=".01" rotation="0 0 -90" position="0.1 -0.02 0.06" shader="flat" width="2" height="2" vertex-a="0 .3 0">
+                </a-triangle>
+             </a-plane> 
+              
+             <a-plane id="stopbox" scale="0.3 0.3 0.3" position="0 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songstopper="">
+                 <a-plane id="stopicon" color="white" position="0 0 0.06" shader="flat" width="1" height="1">
+                </a-plane>
+             </a-plane>
+    
+             <a-plane id="pausebox" scale="0.3 0.3 0.3" position="0.673 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songpauser="">
+                <a-plane id="pauseiconleft" color="white" depth=".1" position="-0.4 0 0.06" shader="flat" width=".5" height="1"></a-plane>
+                <a-plane id="pauseiconright" color="white" depth=".1" position="0.4 0 0.06" shader="flat" width=".5" height="1"></a-plane>
+             </a-plane>
+          
+          </a-entity>
+
+         <!-- Song 2 -->
+         <a-entity id="musicpanel" class="homeworld" position="-4.356 6.918 14.922" rotation="1.0313240312354817 178.87742363984302 0.8594366926962348" sound="src:https://cdn.glitch.com/96ab1f6e-16b9-43c1-9df3-fbe9b24a7490%2FLeft%20and%20Leaving.mp3?1549919550870">
+  
+          <a-plane width="2.5" height="3.5" position="0 -0.06 0" shader="flat" src="#flowers" side="double"></a-plane>
+          <a-plane position="0 -0.5 0.01" width="2" height=".5" transparent="true" opacity=".9" color="#191817" text="align:center;value:Song Des;width:4"></a-plane>
+          
+          <a-plane id="playbox" depth=".01" scale="0.3 0.3 0.3" position="-0.673 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songplayer="">
+             <a-triangle id="playicon" color="white" depth=".01" rotation="0 0 -90" position="0.1 -0.02 0.06" shader="flat" width="2" height="2" vertex-a="0 .3 0">
+            </a-triangle>
+         </a-plane> 
+          
+         <a-plane id="stopbox" scale="0.3 0.3 0.3" position="0 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songstopper="">
+             <a-plane id="stopicon" color="white" position="0 0 0.06" shader="flat" width="1" height="1">
+            </a-plane>
+         </a-plane>
+
+         <a-plane id="pausebox" scale="0.3 0.3 0.3" position="0.673 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songpauser="">
+            <a-plane id="pauseiconleft" color="white" depth=".1" position="-0.4 0 0.06" shader="flat" width=".5" height="1"></a-plane>
+            <a-plane id="pauseiconright" color="white" depth=".1" position="0.4 0 0.06" shader="flat" width=".5" height="1"></a-plane>
+         </a-plane>
+      
+      </a-entity>
+
+
+          <!-- song 3 -->
+          <a-entity id="musicpanel" class="homeworld" position="-7.55 3.014 14.922" rotation="1.0313240312354817 178.87742363984302 0.9740282517223996" sound="src:https://cdn.glitch.com/96ab1f6e-16b9-43c1-9df3-fbe9b24a7490%2FLeft%20and%20Leaving.mp3?1549919550870">
+  
+            <a-plane width="2.5" height="3.5" position="0 -0.06 0" shader="flat" src="#flowers" side="double"></a-plane>
+            <a-plane position="0 -0.5 0.01" width="2" height=".5" transparent="true" opacity=".9" color="#191817" text="align:center;value:Song Des;width:4"></a-plane>
+            
+            <a-plane id="playbox" depth=".01" scale="0.3 0.3 0.3" position="-0.673 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songplayer="">
+               <a-triangle id="playicon" color="white" depth=".01" rotation="0 0 -90" position="0.1 -0.02 0.06" shader="flat" width="2" height="2" vertex-a="0 .3 0">
+              </a-triangle>
+           </a-plane> 
+            
+           <a-plane id="stopbox" scale="0.3 0.3 0.3" position="0 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songstopper="">
+               <a-plane id="stopicon" color="white" position="0 0 0.06" shader="flat" width="1" height="1">
+              </a-plane>
+           </a-plane>
+  
+           <a-plane id="pausebox" scale="0.3 0.3 0.3" position="0.673 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songpauser="">
+              <a-plane id="pauseiconleft" color="white" depth=".1" position="-0.4 0 0.06" shader="flat" width=".5" height="1"></a-plane>
+              <a-plane id="pauseiconright" color="white" depth=".1" position="0.4 0 0.06" shader="flat" width=".5" height="1"></a-plane>
+           </a-plane>
+        
+        </a-entity>
+
+
+          <!-- song -->
+        <a-entity id="musicpanel-2" class="homeworld" position="-7.478 6.98 14.922" rotation="1.0313240312354817 178.87742363984302 0.9740282517223996" sound="src:https://cdn.glitch.com/96ab1f6e-16b9-43c1-9df3-fbe9b24a7490%2FLeft%20and%20Leaving.mp3?1549919550870">
+  
+          <a-plane width="2.5" height="3.5" position="0 -0.082 0" shader="flat" src="#flowers" side="double"></a-plane>
+          <a-plane position="0 -0.5 0.01" width="2" height=".5" transparent="true" opacity=".9" color="#191817" text="align:center;value:Song Des;width:4"></a-plane>
+          
+          <a-plane id="playbox" depth=".01" scale="0.3 0.3 0.3" position="-0.673 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songplayer="">
+             <a-triangle id="playicon" color="white" depth=".01" rotation="0 0 -90" position="0.1 -0.02 0.06" shader="flat" width="2" height="2" vertex-a="0 .3 0">
+            </a-triangle>
+         </a-plane> 
+          
+         <a-plane id="stopbox" scale="0.3 0.3 0.3" position="0 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songstopper="">
+             <a-plane id="stopicon" color="white" position="0 0 0.06" shader="flat" width="1" height="1">
+            </a-plane>
+         </a-plane>
+
+         <a-plane id="pausebox" scale="0.3 0.3 0.3" position="0.673 -1.22 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" songpauser="">
+            <a-plane id="pauseiconleft" color="white" depth=".1" position="-0.4 0 0.06" shader="flat" width=".5" height="1"></a-plane>
+            <a-plane id="pauseiconright" color="white" depth=".1" position="0.4 0 0.06" shader="flat" width=".5" height="1"></a-plane>
+         </a-plane>
+      
+      </a-entity>
+
+          <!-- web development video  -->
+        <a-video src="#videoclip" class="homeworld" position="-14.9 4.71 7.916" rotation="0 90 0" width="5" height="5" scale="2.531 1 1">
+           
+            <a-plane id="vidplaybox" depth=".01" scale="0.3 0.3 0.3" position="-0.35 -2 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" videoplayer>
+              <a-triangle id="vidplayicon" color="white" depth=".01" rotation="0 0 -90" position="0.1 -0.02 0.06" shader="flat" width="2" height="2" vertex-a="0 .3 0">
+             </a-triangle>
+          </a-plane> 
+ 
+          <a-plane id="vidpausebox" scale="0.3 0.3 0.3" position="0.35 -2 0.01" shader="flat" width="2" height="2" material="color:#191817" transparent="true" opacity=".9" vid>
+             <a-plane id="vidpauseiconleft" color="white" depth=".1" position="-0.4 0 0.06" shader="flat" width=".5" height="1"></a-plane>
+             <a-plane id="vidpauseiconright" color="white" depth=".1" position="0.4 0 0.06" shader="flat" width=".5" height="1"></a-plane>
+          </a-plane>
+          
+       </a-video>
+        
+       
+       
+         
+         
+         <a-circle id="homebutton" position="0 .1 0" rotation="-90 0 0" backhome></a-circle>
+        
+       </a-scene>
+     
+
+
+
+
+
+
+
+
+
+
+
+    <script>
+      // On mobile remove elements that are resource heavy
+      var isMobile = AFRAME.utils.device.isMobile();
+
+      if (isMobile) {
+        var particles = document.getElementById('particles');
+        particles.parentNode.removeChild(particles);
+      }
+    </script>
+  </body>
+</html>
