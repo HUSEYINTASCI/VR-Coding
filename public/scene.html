@@ -3,6 +3,7 @@
     <meta charset="utf-8">
     <title>VR CODING</title>
     <script src="https://aframe.io/releases/0.7.0/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-sharedspace-component@1.0.1/dist/aframe-sharedspace-component.min.js"></script>
     <script src="../assets/js/spawn-in-circle.component.js"></script>
     <script src="../assets/js/dynamic-room.component.js"></script>
     <script src="../assets/js/sphereexpand.js"></script>
@@ -19,6 +20,7 @@
     <script src="https://unpkg.com/aframe-randomizer-components@^3.0.1/dist/aframe-randomizer-components.min.js"></script>
     <script src="https://unpkg.com/aframe-particle-system-component@1.0.5/dist/aframe-particle-system-component.min.js"></script>
     <script src="https://rawgit.com/fernandojsg/aframe-teleport-controls/master/dist/aframe-teleport-controls.min.js"></script>
+    <script src="https://unpkg.com/aframe-thumb-controls-component@1.0.x/dist/aframe-thumb-controls-component.min.js"></script> 
     <script src="//cdn.rawgit.com/donmccurdy/aframe-physics-system/v3.3.0/dist/aframe-physics-system.min.js"></script>
     <script>
       // Define custom schema for syncing avatar color, set by random-color, and name tag
@@ -41,120 +43,8 @@
       });
           </script>
 
-          <!-- Teleportacion -->
-           <script>
-            AFRAME.registerComponent('input-listen', {
-              init:function () {  
-                const txt = document.getElementById("txt");
-                this.el.grip = false;
-                this.el.sumY = 1;  
-                
-               
-                this.el.addEventListener('axismove', function(e) {
-                
-                  txt.setAttribute("value", e.detail.axis[0].toFixed(2) + "," + e.detail.axis[1].toFixed(2));
-                 
-                  this.sumY += (-e.detail.axis[1] * 0.01);
-                });
-                
-              
-                this.el.addEventListener('xbuttondown', function(e) {
-                  //txt.setAttribute("value", "x pressed");
-                  
-               
-                  this.emit('teleportstart');
-                });
-              
-                this.el.addEventListener('xbuttonup', function(e) {
-                  //txt.setAttribute("value", "x released");
-                  
-              
-                  this.emit('teleportend');
-                });
-                
-              
-                this.el.addEventListener('gripdown', function(e) {
-                  //txt.setAttribute("value", "grip pressed");
-                  this.grip = true;
-               
-                  this.sumY = 1;
-                });
-           
-                this.el.addEventListener('gripup', function(e) {
-                  //txt.setAttribute("value", "grip released");
-                  this.grip = false;
-                });
-                
-       
-                this.el.addEventListener('raycaster-intersection', function(e) {
-           
-                  this.selectedObj = e.detail.els[0];
-                });
-                
-                this.el.addEventListener('raycaster-intersection-cleared', function(e) {
-                 
-                  this.selectedObj = null;
-                });
-                 
-                this.el.addEventListener('triggerdown', function(e) {
-            
-                  var point = this.object3D.getWorldPosition();
-          
-                  var ball = document.createElement('a-sphere');
-                  ball.setAttribute('class', 'ball');
-                  ball.setAttribute('scale', '0.2 0.2 0.2');
-                  ball.setAttribute('position', point);
-         
-                  ball.setAttribute('dynamic-body', 'shape: sphere; sphereRadius: 0.2;');
-          
-                  var scene = document.querySelector('a-scene');
-                  scene.appendChild(ball);
-                  
-              
-                  var dir = this.getAttribute('raycaster').direction;
-                
-                  var force = new THREE.Vector3();
-                  force.set(dir.x, dir.y, dir.z);
-                  force.multiplyScalar(2000);
-                
-                  ball.force = this.object3D.localToWorld(force);
-                
-                  ball.addEventListener('body-loaded', function(e) {
-            
-                    var p = this.object3D.position;
-               
-                    var f = this.force;
-                    this.body.applyForce(new CANNON.Vec3(f.x, f.y, f.z), new CANNON.Vec3(p.x, p.y, p.z));
-                  });
-                });
-              
-                this.el.addEventListener('abuttondown', function(e) {
-              
-                  var els = document.querySelectorAll('.ball');
-               
-                  for (var i = 0; i < els.length; ++i) {
-                    els[i].parentNode.removeChild(els[i]);
-                  }
-                });
-              },
-              tick: function() {  
-                if (!this.el.selectedObj) return;
-                if (!this.el.grip) return;
         
-                
-           
-                var ray = this.el.getAttribute("raycaster").direction;
-              
-                var p = new THREE.Vector3(ray.x, ray.y, ray.z);
-                p.normalize();
-                p.multiplyScalar(1.2 * this.el.sumY);
-           
-                this.el.object3D.localToWorld(p);
-             
-                this.el.selectedObj.object3D.position.set(p.x, p.y, p.z);
-              }
-            });
-          </script>
+          
   </head>
   <body>
 
@@ -182,65 +72,22 @@
         <video id="spherevidclip"  loop="false" src="../assets/images/fall.mp4" crossorigin="anonymous"> </video>
      
         <!-- Avatar -->
-        <script id="avatar-template" type="text/html">
-          <a-entity class="nametag" text="value:Guest; align:center;" position="0 0.7 0" rotation="0 180 0" scale="8 8 8"></a-entity>
-          <a-entity class="avatar" networked-audio-source>
-            <a-sphere class="head"
-              color="#5985ff"
-              scale="0.45 0.5 0.4"
-              random-color
-            ></a-sphere>
-            <a-entity class="face"
-              position="0 0.05 0"
-            >
-              <a-sphere class="eye"
-                color="#efefef"
-                position="0.16 0.1 -0.35"
-                scale="0.12 0.12 0.12"
-              >
-                <a-sphere class="pupil"
-                  color="#000"
-                  position="0 0 -1"
-                  scale="0.2 0.2 0.2"
-                ></a-sphere>
-              </a-sphere>
-              <a-sphere class="eye"
-                color="#efefef"
-                position="-0.16 0.1 -0.35"
-                scale="0.12 0.12 0.12"
-              >
-                <a-sphere class="pupil"
-                  color="#000"
-                  position="0 0 -1"
-                  scale="0.2 0.2 0.2"
-                ></a-sphere>
-              </a-sphere>
-            </a-entity>
          
-          </a-entity>
-         
-        </script>
 
         <!-- /Templates -->
       </a-assets>
  
-<a-entity id="player" networked="template:#avatar-template;showLocalTemplate:false;" camera spawn-in-circle="radius:3;" position="0 1.6 0" wasd-controls look-controls>
-    <a-sphere class="head"
-    visible="false"
-    random-color
-  ></a-sphere>
+      <template>
+        <a-entity>
+          <a-entity obj-model="obj: url(https://cdn.glitch.com/4e53a88a-96d2-46e5-ab4b-f8f1b9c2d486%2Fface.obj?1506059732633)" rotation="0 180 0" scale="0.01 0.01 0.01"></a-entity>
+          <!--
+          Anime Face Model Stocking(https://sketchfab.com/models/d049b6a85d204057b170ef9dbc851200) by stocking(https://sketchfab.com/stocking) is licensed under CC Attribution(http://creativecommons.org/licenses/by/4.0/)
+          -->
+        </a-entity>
+      </template>
       </a-entity>
  
-      <a-entity id="player">
-          <a-entity cursor="rayOrigin: mouse"></a-entity>
-        <a-entity id="head" camera position="0 1.6 0">
-          <a-text id="txt" value="" position="0 0 -1" scale="0.5 0.5 0.5" align="center" color="#FFFFFF"></a-text>
-        </a-entity>
-        <a-entity teleport-controls="player: #player; teleportOrigin: #head; startEvents: teleportstart; endEvents: teleportend"
-                  raycaster="objects: .collidable; far:1.2;"
-                  laser-controls="hand: left" input-listen></a-entity>
-        <a-entity raycaster="objects: .collidable; far:1.2;" laser-controls="hand: right" input-listen></a-entity>
-   
+      <a-entity oculus-touch-controls="hand: right" vive-controls="hand: right" thumb-controls="hand: right"></a-entity>
         
       <!-- sky  -->
         <a-sky id="sky" src="#skyc"></a-sky>
@@ -443,6 +290,82 @@
         var particles = document.getElementById('particles');
         particles.parentNode.removeChild(particles);
       }
+    </script>
+    <script>
+      var hideButton = document.querySelector('.hide');
+      var instructions = document.querySelector('.instructions');
+      hideButton.onclick = function (evt) {
+        instructions.classList.toggle('hidden');
+        this.textContent = instructions.classList.contains('hidden') ? 'Show': 'Hide';
+        return false;
+      };
+      
+      var scene = document.querySelector('a-scene');
+      var room = document.querySelector('[sharedspace]');
+      var table = document.querySelector('.table');
+  
+      // Make the avatar to look at the center of the table.
+      room.addEventListener('avataradded', function onAdded(evt) {
+        
+        // Fixing should happen after the avatar fully loads.
+        // Only then, it is safe to alter the avatar’s components.
+        var avatar = evt.detail.avatar;
+        if (!avatar.hasLoaded) {
+          avatar.addEventListener('loaded', onAdded.bind(null, evt));
+          return;
+        }
+        
+        var tablePosition = table.getAttribute('position');
+        var avatarY = avatar.getAttribute('position').y;
+        avatar.object3D.lookAt(new THREE.Vector3(
+          tablePosition.x, avatarY, tablePosition.z
+        ));
+  
+        // It is not enough to modify the underlaying Three object. It is
+        // neccessary to use the A-Frame API for the sharedspace component to
+        // be able of serialize the rotation correctly.
+        var radToDeg = THREE.Math.radToDeg;
+        var rotation = avatar.object3D.rotation;
+        rotation.y += Math.PI;
+        
+        avatar.setAttribute('rotation', {
+          x: radToDeg(rotation.x),
+          y: radToDeg(rotation.y),
+          z: radToDeg(rotation.z)
+        });
+        
+      });
+  
+      // Create a new room or join one.
+      let roomName = window.location.search.substr(1);
+      if (!roomName) {
+        roomName = 'room-' + Date.now();
+        history.pushState({}, '', window.location + `?${roomName}`);
+      }
+      else {
+        hideButton.click();
+      }
+      connect();
+  
+      function connect() {
+        if (!scene.hasLoaded) {
+          scene.addEventListener('loaded', connect);
+          return;
+        }
+        room.setAttribute('sharedspace', { room: roomName, hold: false });
+      }
+  
+      // Select link on click.
+      var link = document.querySelector('.link');
+      link.textContent = window.location.href;
+      link.onclick = function () {
+        var range = document.createRange();
+        range.selectNode(link);
+        var selection = document.getSelection();
+        selection.empty();
+        selection.addRange(range);
+      };
+  
     </script>
   </body>
 </html>
